@@ -1,0 +1,47 @@
+{
+  "name": "JACOB",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp avec Baileys, Gemini AI et fonctionnalités avancées",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "node --check index.js",
+    "install-global": "npm install -g pm2",
+    "pm2-start": "pm2 start index.js --name whatsapp-bot",
+    "pm2-stop": "pm2 stop whatsapp-bot",
+    "pm2-restart": "pm2 restart whatsapp-bot",
+    "pm2-delete": "pm2 delete whatsapp-bot",
+    "pm2-logs": "pm2 logs whatsapp-bot",
+    "setup": "npm install && echo 'Configuration terminée! Éditez le fichier .env puis lancez: npm start'",
+    "clean": "rm -rf node_modules package-lock.json auth_info_baileys bot_data.json",
+    "reset-auth": "rm -rf auth_info_baileys && echo 'Authentification réinitialisée. Vous devrez rescanner le QR Code.'"
+  },
+  "keywords": ["whatsapp", "bot", "baileys", "gemini", "ai", "chatbot", "nodejs"],
+  "author": "HURGIN",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.6.0",
+    "@hapi/boom": "^10.0.1",
+    "pino": "^8.17.2",
+    "@google/generative-ai": "^0.2.1",
+    "node-cron": "^3.0.3",
+    "express": "^4.18.2",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": ""
+}
