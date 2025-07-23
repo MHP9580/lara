@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_picture) if current_user.profile_picture != 'default-avatar.svg' else url_for('static', filename='img/default-avatar.svg') }}" 
+                     class="rounded-circle me-3 profile-picture" width="80" height="80" alt="Profile">
+                <div>
+                    <h1 class="h3 mb-1">
+                        Bonjour, {{ current_user.first_name }}!
+                        {% if current_user.is_premium_active %}
+                        <span class="badge bg-warning text-dark ms-2">
+                            <i class="fas fa-crown me-1"></i>Premium
+                        </span>
+                        {% endif %}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ current_user.location or 'Localisation non renseignée' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <a href="{{ url_for('create_listing') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Nouvelle annonce
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <div class="stat-number">{{ user_listings|length }}</div>
+                    <div class="stat-label">Mes annonces</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <div class="stat-number">{{ user_listings|selectattr('is_sold', 'equalto', False)|list|length }}</div>
+                    <div class="stat-label">Actives</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <div class="stat-number">{{ user_listings|selectattr('is_sold', 'equalto', True)|list|length }}</div>
+                    <div class="stat-label">Vendues</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body text-center">
+                    <div class="stat-number">{{ unread_messages }}</div>
+                    <div class="stat-label">Messages</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Premium Status -->
+            {% if not current_user.is_premium_active %}
+            <div class="card mb-4 border-warning">
+                <div class="card-body bg-warning bg-opacity-10">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-1">
+                                <i class="fas fa-crown text-warning me-2"></i>Passez Premium
+                            </h5>
+                            <p class="mb-2">Augmentez la visibilité de vos annonces et accédez à des fonctionnalités exclusives</p>
+                            <ul class="list-unstyled small text-muted mb-0">
+                                <li><i class="fas fa-check text-success me-1"></i> Annonces en priorité</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Badge Premium</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Statistiques détaillées</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <a href="{{ url_for('upgrade_premium') }}" class="btn btn-warning fw-bold">
+                                <i class="fas fa-crown me-1"></i>Devenir Premium
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% elif pending_premium_request %}
+            <div class="card mb-4 border-info">
+                <div class="card-body bg-info bg-opacity-10">
+                    <h5 class="mb-1">
+                        <i class="fas fa-clock text-info me-2"></i>Demande Premium en cours
+                    </h5>
+                    <p class="mb-0">Votre demande d'activation Premium est en cours de traitement. Vous serez notifié une fois validée.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- My Listings -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Mes annonces
+                    </h5>
+                    <a href="{{ url_for('create_listing') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Ajouter
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if user_listings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Annonce</th>
+                                    <th>Prix</th>
+                                    <th>Statut</th>
+                                    <th>Vues</th>
+                                    <th>Créée</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for listing in user_listings %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ url_for('static', filename='uploads/' + listing.main_image) if listing.main_image != 'default-product.svg' else url_for('static', filename='img/default-product.svg') }}" 
+                                                 class="rounded me-2" width="50" height="50" style="object-fit: cover;" alt="{{ listing.title }}">
+                                            <div>
+                                                <div class="fw-bold">{{ listing.title }}</div>
+                                                <small class="text-muted">{{ listing.category.name }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="fw-bold text-primary">{{ listing.price|format_price }}</td>
+                                    <td>
+                                        {% if listing.is_sold %}
+                                        <span class="badge bg-success">Vendu</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">Actif</span>
+                                        {% endif %}
+                                        {% if listing.is_premium_listing %}
+                                        <span class="badge bg-warning text-dark ms-1">Premium</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-eye text-muted me-1"></i>{{ listing.view_count }}
+                                    </td>
+                                    <td class="text-muted small">{{ listing.created_at|time_ago }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('listing_detail', id=listing.id) }}" 
+                                               class="btn btn-outline-primary" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('edit_listing', id=listing.id) }}" 
+                                               class="btn btn-outline-secondary" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-warning" 
+                                                    onclick="toggleSoldStatus({{ listing.id }}, this)" 
+                                                    title="{{ 'Marquer disponible' if listing.is_sold else 'Marquer vendu' }}">
+                                                <i class="fas fa-{{ 'undo' if listing.is_sold else 'check' }}"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-plus-circle fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucune annonce pour le moment</h5>
+                        <p class="text-muted">Créez votre première annonce pour commencer à vendre</p>
+                        <a href="{{ url_for('create_listing') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Créer une annonce
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Actions rapides
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('create_listing') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Nouvelle annonce
+                        </a>
+                        <a href="{{ url_for('edit_profile') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user-edit me-2"></i>Modifier profil
+                        </a>
+                        <a href="{{ url_for('chat_index') }}" class="btn btn-outline-info">
+                            <i class="fas fa-comments me-2"></i>Messages
+                            {% if unread_messages > 0 %}
+                            <span class="badge bg-danger">{{ unread_messages }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('search') }}" class="btn btn-outline-success">
+                            <i class="fas fa-search me-2"></i>Parcourir
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Info -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Informations du compte
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Membre depuis</small>
+                        <div>{{ current_user.created_at.strftime('%B %Y') }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Téléphone</small>
+                        <div>{{ current_user.phone_number }}</div>
+                    </div>
+                    {% if current_user.is_premium_active %}
+                    <div class="mb-3">
+                        <small class="text-muted">Premium jusqu'au</small>
+                        <div class="text-warning fw-bold">
+                            {{ current_user.premium_end_date.strftime('%d/%m/%Y') if current_user.premium_end_date }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
