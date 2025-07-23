@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}{{ listing.title }} - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Image Gallery -->
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    {% if listing.images %}
+                    <div id="listingCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for image in listing.images %}
+                            <div class="carousel-item {{ 'active' if loop.first }}">
+                                <img src="{{ url_for('static', filename='uploads/' + image.image_path) }}" 
+                                     class="d-block w-100" style="height: 400px; object-fit: cover;" 
+                                     alt="{{ listing.title }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if listing.images|length > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <img src="{{ url_for('static', filename='img/default-product.svg') }}" 
+                         class="d-block w-100" style="height: 400px; object-fit: cover;" 
+                         alt="{{ listing.title }}">
+                    {% endif %}
+                    
+                    <!-- Premium Badge -->
+                    {% if listing.is_premium_listing %}
+                    <div class="premium-badge">
+                        <i class="fas fa-crown"></i> Premium
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Sold Overlay -->
+                    {% if listing.is_sold %}
+                    <div class="sold-overlay">
+                        <span class="sold-badge">VENDU</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Listing Details -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h1 class="h3 mb-1">{{ listing.title }}</h1>
+                            <div class="text-muted">
+                                <i class="fas fa-folder me-1"></i>{{ listing.category.name }}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-eye me-1"></i>{{ listing.view_count }} vue{{ 's' if listing.view_count > 1 else '' }}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-clock me-1"></i>{{ listing.created_at|time_ago }}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="price-large text-primary">{{ listing.price|format_price }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5>Description</h5>
+                        <p class="text-muted">{{ listing.description|nl2br }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>Localisation</h6>
+                        <p class="text-muted">{{ listing.location }}</p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-2 mt-4">
+                        {% if current_user.is_authenticated %}
+                            {% if current_user.id == listing.user_id %}
+                            <!-- Owner Actions -->
+                            <a href="{{ url_for('edit_listing', id=listing.id) }}" class="btn btn-primary">
+                                <i class="fas fa-edit me-2"></i>Modifier
+                            </a>
+                            <button type="button" class="btn btn-{{ 'warning' if listing.is_sold else 'success' }}" 
+                                    onclick="toggleSoldStatus({{ listing.id }}, this)">
+                                <i class="fas fa-{{ 'undo' if listing.is_sold else 'check' }} me-2"></i>
+                                {{ 'Marquer disponible' if listing.is_sold else 'Marquer vendu' }}
+                            </button>
+                            {% else %}
+                            <!-- Buyer Actions -->
+                            {% if not listing.is_sold %}
+                            <a href="{{ url_for('start_chat_from_listing', listing_id=listing.id) }}" 
+                               class="btn btn-primary btn-lg">
+                                <i class="fas fa-comments me-2"></i>Contacter le vendeur
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                        {% else %}
+                        <!-- Guest Actions -->
+                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Se connecter pour contacter
+                        </a>
+                        {% endif %}
+                        
+                        <button type="button" class="btn btn-outline-secondary" onclick="shareListing()">
+                            <i class="fas fa-share-alt me-2"></i>Partager
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Seller Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Vendeur
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ url_for('static', filename='uploads/' + listing.user.profile_picture) if listing.user.profile_picture != 'default-avatar.svg' else url_for('static', filename='img/default-avatar.svg') }}" 
+                             class="rounded-circle me-3" width="60" height="60" alt="{{ listing.user.full_name }}">
+                        <div>
+                            <h6 class="mb-1">
+                                {{ listing.user.full_name }}
+                                {% if listing.user.is_premium_active %}
+                                <i class="fas fa-crown text-warning ms-1" title="Vendeur Premium"></i>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ listing.user.location or 'Localisation non renseignée' }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Membre depuis</small>
+                        <div>{{ listing.user.created_at.strftime('%B %Y') }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Annonces actives</small>
+                        <div>{{ listing.user.listings|selectattr('is_active', 'equalto', True)|selectattr('is_sold', 'equalto', False)|list|length }}</div>
+                    </div>
+
+                    {% if current_user.is_authenticated and current_user.id != listing.user_id and not listing.is_sold %}
+                    <a href="{{ url_for('start_chat_from_listing', listing_id=listing.id) }}" 
+                       class="btn btn-primary w-100">
+                        <i class="fas fa-comments me-2"></i>Envoyer un message
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Safety Tips -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>Conseils de sécurité
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Rencontrez-vous dans un lieu public
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Vérifiez l'article avant de payer
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Ne payez jamais à l'avance sans voir l'article
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Faites confiance à votre instinct
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Report Listing -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="reportListing()">
+                        <i class="fas fa-flag me-2"></i>Signaler cette annonce
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Listings -->
+    {% if related_listings %}
+    <section class="mt-5">
+        <h3 class="mb-4">
+            <i class="fas fa-th-large me-2"></i>Annonces similaires
+        </h3>
+        <div class="row g-4">
+            {% for related_listing in related_listings %}
+            <div class="col-lg-3 col-md-6">
+                {% include 'partials/listing_card.html' %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function shareListing() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ listing.title }}',
+            text: '{{ listing.description[:100] }}...',
+            url: window.location.href
+        });
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(window.location.href).then(function() {
+            showNotification('Lien copié dans le presse-papiers!', 'success');
+        });
+    }
+}
+
+function reportListing() {
+    if (confirm('Êtes-vous sûr de vouloir signaler cette annonce ?')) {
+        // In a real implementation, this would send a report to the admin
+        showNotification('Merci pour votre signalement. Il sera examiné par notre équipe.', 'info');
+    }
+}
+
+// Initialize image zoom on click
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('#listingCarousel img');
+    images.forEach(img => {
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', function() {
+            // Simple image modal/lightbox could be implemented here
+            window.open(this.src, '_blank');
+        });
+    });
+});
+</script>
+{% endblock %}

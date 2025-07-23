@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier {{ listing.title }} - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Modifier l'annonce
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Basic Information -->
+                        <div class="mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-info-circle me-2"></i>Informations de base
+                            </h5>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold">
+                                <i class="fas fa-tag me-1"></i>Titre de l'annonce *
+                            </label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{{ listing.title }}" required maxlength="200">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label fw-bold">
+                                    <i class="fas fa-folder me-1"></i>Catégorie *
+                                </label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="">Choisir une catégorie</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}" 
+                                            {% if category.id == listing.category_id %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label fw-bold">
+                                    <i class="fas fa-money-bill me-1"></i>Prix (FCFA) *
+                                </label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       value="{{ listing.price|int }}" min="0" step="100" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-align-left me-1"></i>Description *
+                            </label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="5" required>{{ listing.description }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="location" class="form-label fw-bold">
+                                <i class="fas fa-map-marker-alt me-1"></i>Localisation *
+                            </label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{{ listing.location }}" required maxlength="200">
+                        </div>
+
+                        <!-- Current Images -->
+                        {% if listing.images %}
+                        <hr class="my-4">
+                        <div class="mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-images me-2"></i>Images actuelles
+                            </h5>
+                            <div class="row">
+                                {% for image in listing.images %}
+                                <div class="col-md-3 mb-3">
+                                    <div class="position-relative">
+                                        <img src="{{ url_for('static', filename='uploads/' + image.image_path) }}" 
+                                             class="img-fluid rounded shadow-sm" style="height: 150px; width: 100%; object-fit: cover;" 
+                                             alt="Image {{ loop.index }}">
+                                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle" 
+                                                onclick="deleteImage({{ image.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        {% if image.is_primary %}
+                                        <span class="badge bg-primary position-absolute bottom-0 start-0 m-1">Principale</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Add New Images -->
+                        <hr class="my-4">
+                        <div class="mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-plus me-2"></i>Ajouter de nouvelles images
+                            </h5>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="images" class="form-label fw-bold">Nouvelles images</label>
+                            <div class="upload-zone" onclick="document.getElementById('images').click()">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                <h6 class="text-muted">Cliquez pour ajouter des photos</h6>
+                                <p class="text-muted small mb-0">JPG, PNG, GIF (max 16MB par image)</p>
+                            </div>
+                            <input type="file" class="form-control d-none" id="images" name="images" 
+                                   accept="image/*" multiple>
+                            
+                            <!-- New Image Preview -->
+                            <div id="preview-container" class="row mt-3"></div>
+                        </div>
+
+                        <!-- Listing Status -->
+                        <hr class="my-4">
+                        <div class="mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-toggle-on me-2"></i>Statut de l'annonce
+                            </h5>
+                            <div class="alert alert-info">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <strong>Statut actuel:</strong>
+                                        {% if listing.is_sold %}
+                                        <span class="badge bg-success ms-2">Vendu</span>
+                                        {% else %}
+                                        <span class="badge bg-primary ms-2">Disponible</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-{{ 'warning' if listing.is_sold else 'success' }} btn-sm" 
+                                                onclick="toggleSoldStatus({{ listing.id }}, this)">
+                                            {{ 'Marquer disponible' if listing.is_sold else 'Marquer vendu' }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <div>
+                                <a href="{{ url_for('listing_detail', id=listing.id) }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </a>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-info ms-2">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Tableau de bord
+                                </a>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-danger me-2" onclick="deleteListing()">
+                                    <i class="fas fa-trash me-2"></i>Supprimer
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Image upload and preview for new images
+document.getElementById('images').addEventListener('change', function() {
+    handleFileUpload(this);
+});
+
+function handleFileUpload(input) {
+    const files = input.files;
+    const previewContainer = document.getElementById('preview-container');
+    previewContainer.innerHTML = '';
+    
+    Array.from(files).forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'col-md-3 mb-3';
+                preview.innerHTML = `
+                    <div class="position-relative">
+                        <img src="${e.target.result}" class="img-fluid rounded shadow-sm" 
+                             style="height: 150px; width: 100%; object-fit: cover;" alt="Preview">
+                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle" 
+                                onclick="removePreview(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <span class="badge bg-info position-absolute bottom-0 start-0 m-1">Nouvelle</span>
+                    </div>
+                `;
+                previewContainer.appendChild(preview);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function removePreview(button) {
+    button.closest('.col-md-3').remove();
+}
+
+function deleteImage(imageId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) {
+        fetch(`/api/images/${imageId}/delete`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showNotification('Erreur lors de la suppression de l\'image', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Erreur de connexion', 'error');
+        });
+    }
+}
+
+function deleteListing() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer définitivement cette annonce ? Cette action est irréversible.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("delete_listing", id=listing.id) }}';
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Auto-save draft (could be implemented)
+let autoSaveTimeout;
+document.querySelectorAll('input, textarea, select').forEach(element => {
+    element.addEventListener('input', function() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            // Auto-save functionality could be implemented here
+            console.log('Auto-saving draft...');
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

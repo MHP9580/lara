@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Créer une annonce - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>Créer une nouvelle annonce
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Basic Information -->
+                        <div class="mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-info-circle me-2"></i>Informations de base
+                            </h5>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold">
+                                <i class="fas fa-tag me-1"></i>Titre de l'annonce *
+                            </label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="Ex: iPhone 12 Pro en excellent état" required maxlength="200">
+                            <div class="form-text">Soyez précis et descriptif pour attirer l'attention</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label fw-bold">
+                                    <i class="fas fa-folder me-1"></i>Catégorie *
+                                </label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="">Choisir une catégorie</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label fw-bold">
+                                    <i class="fas fa-money-bill me-1"></i>Prix (FCFA) *
+                                </label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       min="0" step="100" placeholder="50000" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-align-left me-1"></i>Description *
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="5" 
+                                      placeholder="Décrivez votre produit ou service en détail..." required></textarea>
+                            <div class="form-text">Plus votre description est détaillée, plus vous avez de chances de vendre</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="location" class="form-label fw-bold">
+                                <i class="fas fa-map-marker-alt me-1"></i>Localisation *
+                            </label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   placeholder="Ville, quartier..." required maxlength="200"
+                                   value="{{ current_user.location or '' }}">
+                            <div class="form-text">Indiquez où se trouve votre produit ou où vous proposez votre service</div>
+                        </div>
+
+                        <!-- Images Section -->
+                        <hr class="my-4">
+                        <div class="mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-images me-2"></i>Photos
+                            </h5>
+                            <p class="text-muted small">Ajoutez jusqu'à 5 photos pour présenter votre produit</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="images" class="form-label fw-bold">Images du produit</label>
+                            <div class="upload-zone" onclick="document.getElementById('images').click()">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h6 class="text-muted">Cliquez pour ajouter des photos</h6>
+                                <p class="text-muted small mb-0">
+                                    JPG, PNG, GIF (max 16MB par image)<br>
+                                    Première image = photo principale
+                                </p>
+                            </div>
+                            <input type="file" class="form-control d-none" id="images" name="images" 
+                                   accept="image/*" multiple>
+                            
+                            <!-- Image Preview -->
+                            <div id="preview-container" class="row mt-3"></div>
+                        </div>
+
+                        <!-- Tips Section -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-lightbulb me-2"></i>Conseils pour une bonne annonce
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li>Utilisez des photos de qualité avec un bon éclairage</li>
+                                <li>Soyez honnête sur l'état de votre produit</li>
+                                <li>Répondez rapidement aux messages des acheteurs</li>
+                                <li>Mettez un prix juste par rapport au marché</li>
+                            </ul>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plus me-2"></i>Publier l'annonce
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Premium Promotion -->
+            {% if not current_user.is_premium_active %}
+            <div class="card mt-4 border-warning">
+                <div class="card-body bg-warning bg-opacity-10">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-1">
+                                <i class="fas fa-crown text-warning me-2"></i>Boostez votre annonce avec Premium
+                            </h6>
+                            <p class="small text-muted mb-0">
+                                Les annonces Premium apparaissent en priorité dans les recherches et sur la page d'accueil
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <a href="{{ url_for('upgrade_premium') }}" class="btn btn-warning btn-sm">
+                                En savoir plus
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Image upload and preview
+document.getElementById('images').addEventListener('change', function() {
+    handleFileUpload(this);
+});
+
+function handleFileUpload(input) {
+    const files = input.files;
+    const previewContainer = document.getElementById('preview-container');
+    previewContainer.innerHTML = '';
+    
+    if (files.length > 5) {
+        alert('Vous ne pouvez télécharger que 5 images maximum.');
+        input.value = '';
+        return;
+    }
+    
+    Array.from(files).forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'col-md-4 col-6 mb-3';
+                preview.innerHTML = `
+                    <div class="position-relative">
+                        <img src="${e.target.result}" class="img-fluid rounded shadow-sm" 
+                             style="height: 150px; width: 100%; object-fit: cover;" alt="Preview">
+                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle" 
+                                onclick="removePreview(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        ${index === 0 ? '<span class="badge bg-primary position-absolute bottom-0 start-0 m-1">Photo principale</span>' : ''}
+                    </div>
+                `;
+                previewContainer.appendChild(preview);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function removePreview(button) {
+    const preview = button.closest('.col-md-4');
+    preview.remove();
+    
+    // If removed the main image, make the first remaining image the main one
+    const previews = document.querySelectorAll('#preview-container .col-md-4');
+    if (previews.length > 0) {
+        const firstPreview = previews[0];
+        const existingBadge = firstPreview.querySelector('.badge');
+        if (!existingBadge) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary position-absolute bottom-0 start-0 m-1';
+            badge.textContent = 'Photo principale';
+            firstPreview.querySelector('.position-relative').appendChild(badge);
+        }
+    }
+}
+
+// Price formatting
+document.getElementById('price').addEventListener('input', function() {
+    let value = this.value.replace(/[^\d]/g, '');
+    if (value) {
+        // Add thousand separators for display
+        this.setAttribute('data-original', value);
+    }
+});
+
+// Auto-suggest location based on user's profile
+document.addEventListener('DOMContentLoaded', function() {
+    const locationInput = document.getElementById('location');
+    if (locationInput.value === '' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            // In a real implementation, you would reverse geocode the coordinates
+            // For now, we'll use the user's profile location if available
+        });
+    }
+});
+</script>
+{% endblock %}
