@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Recherche - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Search Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card search-filters">
+                <div class="card-body">
+                    <form method="GET" class="search-form">
+                        <div class="row g-3">
+                            <div class="col-lg-4">
+                                <label for="search" class="form-label fw-bold">Rechercher</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       placeholder="Produit, service, mot-clé..." value="{{ search or '' }}">
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="category" class="form-label fw-bold">Catégorie</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">Toutes</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}" 
+                                            {% if selected_category == category.id %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="location" class="form-label fw-bold">Localisation</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="Ville, quartier..." value="{{ location or '' }}">
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="min_price" class="form-label fw-bold">Prix min</label>
+                                <input type="number" class="form-control" id="min_price" name="min_price" 
+                                       placeholder="0" value="{{ min_price or '' }}">
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="max_price" class="form-label fw-bold">Prix max</label>
+                                <input type="number" class="form-control" id="max_price" name="max_price" 
+                                       placeholder="∞" value="{{ max_price or '' }}">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-lg-8">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="fas fa-search me-2"></i>Rechercher
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-2"></i>Effacer
+                                </button>
+                                <button type="button" class="btn btn-outline-info ms-2" onclick="useMyLocation()">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Ma position
+                                </button>
+                            </div>
+                            <div class="col-lg-4 text-end">
+                                <label for="sort" class="form-label fw-bold me-2">Trier par:</label>
+                                <select class="form-select d-inline-block w-auto" id="sort" name="sort" onchange="this.form.submit()">
+                                    <option value="relevance" {% if sort_by == 'relevance' %}selected{% endif %}>Pertinence</option>
+                                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Plus récent</option>
+                                    <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Plus ancien</option>
+                                    <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Prix croissant</option>
+                                    <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Prix décroissant</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="row">
+        <div class="col-lg-9">
+            <!-- Results Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-list me-2"></i>
+                    {{ listings|length }} résultat{{ 's' if listings|length > 1 else '' }}
+                    {% if search %} pour "{{ search }}"{% endif %}
+                </h4>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="view" id="grid-view" checked>
+                    <label class="btn btn-outline-primary" for="grid-view">
+                        <i class="fas fa-th"></i>
+                    </label>
+                    <input type="radio" class="btn-check" name="view" id="list-view">
+                    <label class="btn btn-outline-primary" for="list-view">
+                        <i class="fas fa-list"></i>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Grid View -->
+            <div id="grid-results">
+                {% if listings %}
+                <div class="row g-4">
+                    {% for listing in listings %}
+                    <div class="col-lg-4 col-md-6">
+                        {% include 'partials/listing_card.html' %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun résultat trouvé</h5>
+                    <p class="text-muted">Essayez de modifier vos critères de recherche</p>
+                    <button type="button" class="btn btn-primary" onclick="clearFilters()">
+                        <i class="fas fa-times me-2"></i>Effacer les filtres
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- List View -->
+            <div id="list-results" style="display: none;">
+                {% if listings %}
+                <div class="list-group">
+                    {% for listing in listings %}
+                    <div class="list-group-item list-group-item-action">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <img src="{{ url_for('static', filename='uploads/' + listing.main_image) if listing.main_image != 'default-product.svg' else url_for('static', filename='img/default-product.svg') }}" 
+                                     class="img-fluid rounded" style="height: 80px; width: 100%; object-fit: cover;" 
+                                     alt="{{ listing.title }}">
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-1">
+                                    {{ listing.title }}
+                                    {% if listing.is_premium_listing %}
+                                    <span class="badge bg-warning text-dark ms-1">Premium</span>
+                                    {% endif %}
+                                </h6>
+                                <p class="text-muted mb-1 small">{{ listing.description[:100] }}...</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-folder me-1"></i>{{ listing.category.name }}
+                                    <span class="mx-2">•</span>
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ listing.location }}
+                                    <span class="mx-2">•</span>
+                                    <i class="fas fa-clock me-1"></i>{{ listing.created_at|time_ago }}
+                                </small>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div class="price fw-bold text-primary">{{ listing.price|format_price }}</div>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <a href="{{ url_for('listing_detail', id=listing.id) }}" class="btn btn-primary btn-sm">
+                                    Voir détails
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Pagination could be added here -->
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <!-- Quick Categories -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-th-large me-2"></i>Catégories populaires
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for category in categories[:6] %}
+                    <a href="{{ url_for('search', category=category.id) }}" 
+                       class="d-block text-decoration-none py-2 {{ 'text-primary fw-bold' if selected_category == category.id else 'text-muted' }}">
+                        <i class="{{ category.icon }} me-2"></i>{{ category.name }}
+                        <span class="float-end badge bg-light text-dark">{{ category.listings|length }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Price Ranges -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-money-bill me-2"></i>Gammes de prix
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('search', search=search, category=selected_category, location=location, max_price=10000) }}" 
+                           class="btn btn-outline-secondary btn-sm text-start">
+                            Moins de 10 000 FCFA
+                        </a>
+                        <a href="{{ url_for('search', search=search, category=selected_category, location=location, min_price=10000, max_price=50000) }}" 
+                           class="btn btn-outline-secondary btn-sm text-start">
+                            10 000 - 50 000 FCFA
+                        </a>
+                        <a href="{{ url_for('search', search=search, category=selected_category, location=location, min_price=50000, max_price=100000) }}" 
+                           class="btn btn-outline-secondary btn-sm text-start">
+                            50 000 - 100 000 FCFA
+                        </a>
+                        <a href="{{ url_for('search', search=search, category=selected_category, location=location, min_price=100000) }}" 
+                           class="btn btn-outline-secondary btn-sm text-start">
+                            Plus de 100 000 FCFA
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saved Searches -->
+            {% if current_user.is_authenticated %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bookmark me-2"></i>Recherches rapides
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="saveSearch()">
+                            <i class="fas fa-plus me-2"></i>Sauvegarder cette recherche
+                        </button>
+                        <a href="{{ url_for('search', location=current_user.location) }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-map-marker-alt me-2"></i>Près de moi
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// View toggle
+document.getElementById('grid-view').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('grid-results').style.display = 'block';
+        document.getElementById('list-results').style.display = 'none';
+    }
+});
+
+document.getElementById('list-view').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('grid-results').style.display = 'none';
+        document.getElementById('list-results').style.display = 'block';
+    }
+});
+
+// Clear filters
+function clearFilters() {
+    document.getElementById('search').value = '';
+    document.getElementById('category').value = '';
+    document.getElementById('location').value = '';
+    document.getElementById('min_price').value = '';
+    document.getElementById('max_price').value = '';
+    document.querySelector('.search-form').submit();
+}
+
+// Use current location
+function useMyLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            // In a real implementation, you would reverse geocode these coordinates
+            // For now, we'll just indicate that we're using the user's location
+            document.getElementById('location').value = 'Ma position actuelle';
+            document.getElementById('location').form.submit();
+        }, function(error) {
+            showNotification('Impossible d\'obtenir votre position', 'error');
+        });
+    } else {
+        showNotification('La géolocalisation n\'est pas supportée par ce navigateur', 'error');
+    }
+}
+
+// Save search
+function saveSearch() {
+    // In a real implementation, this would save the search parameters
+    showNotification('Fonctionnalité à venir : sauvegarder vos recherches', 'info');
+}
+
+// Auto-submit on price filter change
+document.getElementById('min_price').addEventListener('change', function() {
+    if (this.value) {
+        setTimeout(() => this.form.submit(), 500);
+    }
+});
+
+document.getElementById('max_price').addEventListener('change', function() {
+    if (this.value) {
+        setTimeout(() => this.form.submit(), 500);
+    }
+});
+
+// Search suggestions (basic implementation)
+document.getElementById('search').addEventListener('input', debounce(function() {
+    const query = this.value;
+    if (query.length > 2) {
+        // Could implement search suggestions here
+        console.log('Search suggestions for:', query);
+    }
+}, 300));
+</script>
+{% endblock %}

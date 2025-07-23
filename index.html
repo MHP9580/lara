@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">
+                    Découvrez le marché local congolais
+                </h1>
+                <p class="lead mb-4">
+                    Connectez-vous avec des vendeurs locaux, trouvez des produits uniques et 
+                    des services de qualité près de chez vous.
+                </p>
+                {% if not current_user.is_authenticated %}
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('register') }}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>S'inscrire
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-lg-6">
+                <!-- Search Form -->
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <h5 class="card-title text-dark mb-3">
+                            <i class="fas fa-search me-2"></i>Rechercher des produits
+                        </h5>
+                        <form action="{{ url_for('search') }}" method="GET">
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <input type="text" class="form-control form-control-lg" 
+                                           name="search" placeholder="Que recherchez-vous ?" 
+                                           value="{{ search or '' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <select class="form-select" name="category">
+                                        <option value="">Toutes les catégories</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}" 
+                                                {% if selected_category == category.id %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" name="location" 
+                                           placeholder="Localisation" value="{{ location or '' }}">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="fas fa-search me-2"></i>Rechercher
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">
+            <i class="fas fa-th-large me-2"></i>Parcourir par catégorie
+        </h2>
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <a href="{{ url_for('search', category=category.id) }}" class="text-decoration-none">
+                    <div class="card h-100 shadow-sm category-card">
+                        <div class="card-body text-center">
+                            <i class="{{ category.icon }} fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">{{ category.name }}</h5>
+                            <p class="text-muted small">
+                                {{ category.listings|length }} annonce(s)
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% if premium_listings %}
+<!-- Premium Listings Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <h2>
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    Annonces Premium
+                </h2>
+                <p class="text-muted">Découvrez les meilleures offres de nos vendeurs premium</p>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('search') }}" class="btn btn-outline-primary">
+                    Voir tout <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            {% for listing in premium_listings %}
+            <div class="col-lg-4 col-md-6">
+                {% include 'partials/listing_card.html' %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Recent Listings Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <h2>
+                    <i class="fas fa-clock me-2"></i>
+                    Annonces récentes
+                </h2>
+                <p class="text-muted">Les dernières offres ajoutées sur la plateforme</p>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('search', sort='newest') }}" class="btn btn-outline-primary">
+                    Voir tout <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            {% for listing in recent_listings %}
+            <div class="col-lg-3 col-md-6">
+                {% include 'partials/listing_card.html' %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-lg-4 mb-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-shield-alt fa-3x"></i>
+                </div>
+                <h3>Sécurisé</h3>
+                <p>Transactions sécurisées et vérification des vendeurs pour votre tranquillité d'esprit.</p>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-map-marker-alt fa-3x"></i>
+                </div>
+                <h3>Local</h3>
+                <p>Trouvez des produits et services près de chez vous grâce à notre système de géolocalisation.</p>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-comments fa-3x"></i>
+                </div>
+                <h3>Communication</h3>
+                <p>Chattez directement avec les vendeurs pour négocier et poser vos questions.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+{% if not current_user.is_authenticated %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h2 class="mb-4">Prêt à commencer ?</h2>
+                <p class="lead mb-4">
+                    Rejoignez des milliers de Congolais qui font déjà confiance à Congo Connect 
+                    pour leurs achats et ventes en ligne.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>Créer un compte
+                    </a>
+                    <a href="{{ url_for('search') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-search me-2"></i>Explorer
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Geolocation for better search results
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        // Store coordinates for search enhancement
+        sessionStorage.setItem('user_lat', position.coords.latitude);
+        sessionStorage.setItem('user_lon', position.coords.longitude);
+    });
+}
+
+// Category card hover effects
+document.querySelectorAll('.category-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-5px)';
+        this.style.transition = 'transform 0.3s ease';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+    });
+});
+</script>
+{% endblock %}
