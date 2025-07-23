@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des catégories - Administration Congo Connect</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block admin-sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h6 class="text-light">Administration</h6>
+                        <small class="text-light-emphasis">Congo Connect</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>Tableau de bord
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users me-2"></i>Utilisateurs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_listings') }}">
+                                <i class="fas fa-list me-2"></i>Annonces
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_premium_requests') }}">
+                                <i class="fas fa-crown me-2"></i>Demandes Premium
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_categories') }}">
+                                <i class="fas fa-folder me-2"></i>Catégories
+                            </a>
+                        </li>
+                        
+                        <hr class="text-light my-3">
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="pt-3 pb-2 mb-3 border-bottom">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h1 class="h2">
+                                <i class="fas fa-folder me-2"></i>Gestion des catégories
+                            </h1>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                <i class="fas fa-plus me-2"></i>Ajouter une catégorie
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Categories Grid -->
+                <div class="row">
+                    {% if categories %}
+                    {% for category in categories %}
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="{{ category.icon }} fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">{{ category.name }}</h5>
+                                {% if category.description %}
+                                <p class="text-muted small">{{ category.description }}</p>
+                                {% endif %}
+                                <div class="mb-3">
+                                    <span class="badge bg-primary">{{ category.listings|length }} annonce(s)</span>
+                                </div>
+                                <small class="text-muted">Créée le {{ category.created_at.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" 
+                                            data-bs-toggle="modal" data-bs-target="#editModal{{ category.id }}">
+                                        <i class="fas fa-edit"></i> Modifier
+                                    </button>
+                                    {% if category.listings|length == 0 %}
+                                    <button type="button" class="btn btn-outline-danger btn-sm" 
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal{{ category.id }}">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled 
+                                            title="Impossible de supprimer une catégorie contenant des annonces">
+                                        <i class="fas fa-lock"></i> Protégée
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Edit Modal -->
+                            <div class="modal fade" id="editModal{{ category.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Modifier la catégorie</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST">
+                                            <div class="modal-body">
+                                                <input type="hidden" name="action" value="edit">
+                                                <input type="hidden" name="category_id" value="{{ category.id }}">
+                                                
+                                                <div class="mb-3">
+                                                    <label for="edit_name_{{ category.id }}" class="form-label">Nom *</label>
+                                                    <input type="text" class="form-control" id="edit_name_{{ category.id }}" 
+                                                           name="name" value="{{ category.name }}" required maxlength="100">
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="edit_description_{{ category.id }}" class="form-label">Description</label>
+                                                    <textarea class="form-control" id="edit_description_{{ category.id }}" 
+                                                              name="description" rows="3">{{ category.description or '' }}</textarea>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="edit_icon_{{ category.id }}" class="form-label">Icône (classe Font Awesome)</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="edit_icon_{{ category.id }}" 
+                                                               name="icon" value="{{ category.icon }}" placeholder="fas fa-tag">
+                                                        <span class="input-group-text">
+                                                            <i class="{{ category.icon }}"></i>
+                                                        </span>
+                                                    </div>
+                                                    <div class="form-text">
+                                                        Exemples: fas fa-laptop, fas fa-car, fas fa-home
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Modal -->
+                            {% if category.listings|length == 0 %}
+                            <div class="modal fade" id="deleteModal{{ category.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">Supprimer la catégorie</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Êtes-vous sûr de vouloir supprimer la catégorie <strong>{{ category.name }}</strong> ?</p>
+                                            <div class="alert alert-warning">
+                                                Cette action est irréversible.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                            <form method="POST" action="{{ url_for('delete_category', id=category.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="col-12">
+                        <div class="text-center py-5">
+                            <i class="fas fa-folder fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucune catégorie</h5>
+                            <p class="text-muted">Créez votre première catégorie pour organiser les annonces</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Add Category Modal -->
+                <div class="modal fade" id="addCategoryModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-plus me-2"></i>Ajouter une catégorie
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">Nom *</label>
+                                        <input type="text" class="form-control" id="name" name="name" 
+                                               required maxlength="100" placeholder="Ex: Électronique">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <textarea class="form-control" id="description" name="description" 
+                                                  rows="3" placeholder="Description de la catégorie..."></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="icon" class="form-label">Icône (classe Font Awesome)</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="icon" name="icon" 
+                                                   value="fas fa-tag" placeholder="fas fa-tag">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-tag" id="icon-preview"></i>
+                                            </span>
+                                        </div>
+                                        <div class="form-text">
+                                            Exemples: fas fa-laptop, fas fa-car, fas fa-home, fas fa-tshirt
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Icon Examples -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Icônes populaires:</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm icon-btn" data-icon="fas fa-laptop">
+                                                <i class="fas fa-laptop me-1"></i>Électronique
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm icon-btn" data-icon="fas fa-tshirt">
+                                                <i class="fas fa-tshirt me-1"></i>Vêtements
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm icon-btn" data-icon="fas fa-car">
+                                                <i class="fas fa-car me-1"></i>Véhicules
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm icon-btn" data-icon="fas fa-home">
+                                                <i class="fas fa-home me-1"></i>Immobilier
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm icon-btn" data-icon="fas fa-gamepad">
+                                                <i class="fas fa-gamepad me-1"></i>Loisirs
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm icon-btn" data-icon="fas fa-briefcase">
+                                                <i class="fas fa-briefcase me-1"></i>Emploi
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Créer la catégorie
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // Icon preview
+    document.getElementById('icon').addEventListener('input', function() {
+        const iconPreview = document.getElementById('icon-preview');
+        iconPreview.className = this.value || 'fas fa-tag';
+    });
+
+    // Icon selection buttons
+    document.querySelectorAll('.icon-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const icon = this.getAttribute('data-icon');
+            document.getElementById('icon').value = icon;
+            document.getElementById('icon-preview').className = icon;
+        });
+    });
+    </script>
+</body>
+</html>

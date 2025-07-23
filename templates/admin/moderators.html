@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des modérateurs - Administration Congo Connect</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block admin-sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h6 class="text-light">Administration</h6>
+                        <small class="text-light-emphasis">Congo Connect</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>Tableau de bord
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users me-2"></i>Utilisateurs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_listings') }}">
+                                <i class="fas fa-list me-2"></i>Annonces
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_premium_requests') }}">
+                                <i class="fas fa-crown me-2"></i>Demandes Premium
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_categories') }}">
+                                <i class="fas fa-folder me-2"></i>Catégories
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_moderators') }}">
+                                <i class="fas fa-user-shield me-2"></i>Modérateurs
+                            </a>
+                        </li>
+                        
+                        <hr class="text-light my-3">
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="pt-3 pb-2 mb-3 border-bottom">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h1 class="h2">
+                                <i class="fas fa-user-shield me-2"></i>Gestion des modérateurs
+                            </h1>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModeratorModal">
+                                <i class="fas fa-plus me-2"></i>Ajouter un modérateur
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Moderators List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Liste des modérateurs
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if moderators %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Modérateur</th>
+                                        <th>Email</th>
+                                        <th>Téléphone</th>
+                                        <th>Statut</th>
+                                        <th>Créé le</th>
+                                        <th>Dernière connexion</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for moderator in moderators %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ url_for('static', filename='uploads/' + moderator.profile_picture) if moderator.profile_picture != 'default-admin.svg' else url_for('static', filename='img/default-admin.svg') }}" 
+                                                     class="rounded-circle me-3" width="40" height="40" alt="{{ moderator.full_name }}">
+                                                <div>
+                                                    <div class="fw-bold">{{ moderator.full_name }}</div>
+                                                    <small class="text-muted">@{{ moderator.username }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ moderator.email }}</td>
+                                        <td>{{ moderator.phone_number or 'Non renseigné' }}</td>
+                                        <td>
+                                            {% if moderator.is_active %}
+                                            <span class="badge bg-success">Actif</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Désactivé</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">{{ moderator.created_at.strftime('%d/%m/%Y') }}</span>
+                                        </td>
+                                        <td>
+                                            {% if moderator.last_login %}
+                                            <span class="text-muted">{{ moderator.last_login.strftime('%d/%m/%Y %H:%M') }}</span>
+                                            {% else %}
+                                            <span class="text-muted">Jamais connecté</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form method="POST" action="{{ url_for('toggle_moderator_active', id=moderator.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-{{ 'danger' if moderator.is_active else 'success' }} btn-sm"
+                                                        onclick="return confirm('Confirmer cette action ?')">
+                                                    <i class="fas fa-{{ 'ban' if moderator.is_active else 'check' }}"></i>
+                                                    {{ 'Désactiver' if moderator.is_active else 'Activer' }}
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-user-shield fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun modérateur</h5>
+                            <p class="text-muted">Ajoutez votre premier modérateur pour commencer</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Add Moderator Modal -->
+                <div class="modal fade" id="addModeratorModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-plus me-2"></i>Ajouter un modérateur
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ url_for('add_moderator') }}">
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="first_name" class="form-label">Prénom *</label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="last_name" class="form-label">Nom *</label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="username" class="form-label">Nom d'utilisateur *</label>
+                                            <input type="text" class="form-control" id="username" name="username" required>
+                                            <div class="form-text">Utilisé pour la connexion</div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="email" class="form-label">Email *</label>
+                                            <input type="email" class="form-control" id="email" name="email" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="phone_number" class="form-label">Téléphone</label>
+                                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                                   placeholder="242XXXXXXXXX" pattern="242[0-9]{9}">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="password" class="form-label">Mot de passe *</label>
+                                            <input type="password" class="form-control" id="password" name="password" 
+                                                   required minlength="6">
+                                            <div class="form-text">Minimum 6 caractères</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading">Permissions du modérateur</h6>
+                                        <ul class="mb-0 small">
+                                            <li>Gestion des utilisateurs (activation/désactivation Premium)</li>
+                                            <li>Modération des annonces</li>
+                                            <li>Traitement des demandes Premium</li>
+                                            <li>Gestion des catégories</li>
+                                            <li>Surveillance des messages/chats</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Créer le modérateur
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card mt-4 border-info">
+                    <div class="card-body bg-info bg-opacity-10">
+                        <h6 class="text-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>Informations importantes
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled small mb-0">
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Seuls les super administrateurs peuvent gérer les modérateurs</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Les modérateurs ne peuvent pas créer d'autres modérateurs</li>
+                                    <li class="mb-0"><i class="fas fa-check text-success me-2"></i>Les comptes désactivés ne peuvent plus se connecter</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled small mb-0">
+                                    <li class="mb-2"><i class="fas fa-shield-alt text-primary me-2"></i>Les modérateurs ont accès à tous les outils d'administration</li>
+                                    <li class="mb-2"><i class="fas fa-eye text-primary me-2"></i>Toutes les actions sont tracées et auditées</li>
+                                    <li class="mb-0"><i class="fas fa-key text-primary me-2"></i>Changement de mot de passe dans le profil</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
