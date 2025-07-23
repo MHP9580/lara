@@ -1,0 +1,63 @@
+<div class="card listing-card h-100 shadow-sm">
+    {% if listing.is_premium_listing %}
+    <div class="premium-badge">
+        <i class="fas fa-crown"></i> Premium
+    </div>
+    {% endif %}
+    
+    <div class="card-img-container">
+        <img src="{{ url_for('static', filename='uploads/' + listing.main_image) if listing.main_image != 'default-product.svg' else url_for('static', filename='img/default-product.svg') }}" 
+             class="card-img-top" alt="{{ listing.title }}">
+        {% if listing.is_sold %}
+        <div class="sold-overlay">
+            <span class="sold-badge">VENDU</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title">{{ listing.title }}</h5>
+        <p class="card-text text-muted small flex-grow-1">
+            {{ listing.description[:100] }}{% if listing.description|length > 100 %}...{% endif %}
+        </p>
+        
+        <div class="listing-details mt-auto">
+            <div class="price-location mb-2">
+                <div class="price fw-bold text-primary fs-5">
+                    {{ listing.price|format_price }}
+                </div>
+                <small class="text-muted">
+                    <i class="fas fa-map-marker-alt me-1"></i>{{ listing.location }}
+                </small>
+            </div>
+            
+            <div class="seller-info d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <img src="{{ url_for('static', filename='uploads/' + listing.user.profile_picture) if listing.user.profile_picture != 'default-avatar.svg' else url_for('static', filename='img/default-avatar.svg') }}" 
+                         class="rounded-circle me-2" width="25" height="25" alt="{{ listing.user.full_name }}">
+                    <small class="text-muted">
+                        {{ listing.user.full_name }}
+                        {% if listing.user.is_premium_active %}
+                        <i class="fas fa-crown text-warning ms-1" title="Vendeur Premium"></i>
+                        {% endif %}
+                    </small>
+                </div>
+                <small class="text-muted">{{ listing.created_at|time_ago }}</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-footer bg-transparent">
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('listing_detail', id=listing.id) }}" class="btn btn-primary flex-fill">
+                <i class="fas fa-eye me-1"></i>Voir détails
+            </a>
+            {% if current_user.is_authenticated and current_user.id != listing.user_id and not listing.is_sold %}
+            <a href="{{ url_for('start_chat_from_listing', listing_id=listing.id) }}" 
+               class="btn btn-outline-primary">
+                <i class="fas fa-comments"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
