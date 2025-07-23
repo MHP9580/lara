@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}S'inscrire - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="text-primary-gradient">
+                            <i class="fas fa-user-plus me-2"></i>Créer un compte
+                        </h2>
+                        <p class="text-muted">Rejoignez la communauté Congo Connect</p>
+                    </div>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="first_name" class="form-label fw-bold">
+                                    <i class="fas fa-user me-1"></i>Prénom *
+                                </label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       required maxlength="50">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="last_name" class="form-label fw-bold">
+                                    <i class="fas fa-user me-1"></i>Nom *
+                                </label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       required maxlength="50">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone_number" class="form-label fw-bold">
+                                <i class="fas fa-phone me-1"></i>Numéro de téléphone *
+                            </label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                   placeholder="242XXXXXXXXX" required pattern="242[0-9]{9}" maxlength="12">
+                            <div class="form-text">
+                                Format requis: 242XXXXXXXXX (ex: 242061234567)
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location" class="form-label fw-bold">
+                                <i class="fas fa-map-marker-alt me-1"></i>Localisation
+                            </label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   placeholder="Ville, quartier..." maxlength="200">
+                            <div class="form-text">
+                                Aidez les autres utilisateurs à vous trouver facilement
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="profile_picture" class="form-label fw-bold">
+                                <i class="fas fa-camera me-1"></i>Photo de profil
+                            </label>
+                            <div class="upload-zone" onclick="document.getElementById('profile_picture').click()">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Cliquez pour choisir une photo</p>
+                                <small class="text-muted">JPG, PNG, GIF (max 16MB)</small>
+                            </div>
+                            <input type="file" class="form-control d-none" id="profile_picture" 
+                                   name="profile_picture" accept="image/*">
+                            <div id="profile-preview" class="mt-2"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-1"></i>Mot de passe *
+                            </label>
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   required minlength="6">
+                            <div class="form-text">
+                                Minimum 6 caractères
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-1"></i>Confirmer le mot de passe *
+                            </label>
+                            <input type="password" class="form-control" id="confirm_password" 
+                                   name="confirm_password" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    J'accepte les <a href="#" class="text-primary">conditions d'utilisation</a> 
+                                    et la <a href="#" class="text-primary">politique de confidentialité</a>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-user-plus me-2"></i>Créer mon compte
+                        </button>
+
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                Déjà un compte ? 
+                                <a href="{{ url_for('login') }}" class="text-primary fw-bold">Se connecter</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('profile_picture').addEventListener('change', function() {
+    const file = this.files[0];
+    const preview = document.getElementById('profile-preview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `
+                <div class="text-center">
+                    <img src="${e.target.result}" class="img-fluid rounded-circle" 
+                         style="width: 100px; height: 100px; object-fit: cover;" alt="Preview">
+                    <p class="text-muted small mt-2">${file.name}</p>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.innerHTML = '';
+    }
+});
+
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (confirmPassword && password !== confirmPassword) {
+        this.setCustomValidity('Les mots de passe ne correspondent pas');
+        this.classList.add('is-invalid');
+    } else {
+        this.setCustomValidity('');
+        this.classList.remove('is-invalid');
+        if (confirmPassword) this.classList.add('is-valid');
+    }
+});
+</script>
+{% endblock %}

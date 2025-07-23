@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="text-primary-gradient">
+                            <i class="fas fa-sign-in-alt me-2"></i>Connexion
+                        </h2>
+                        <p class="text-muted">Accédez à votre compte Congo Connect</p>
+                    </div>
+
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="phone_number" class="form-label fw-bold">
+                                <i class="fas fa-phone me-1"></i>Numéro de téléphone
+                            </label>
+                            <input type="tel" class="form-control form-control-lg" id="phone_number" 
+                                   name="phone_number" placeholder="242XXXXXXXXX" required 
+                                   pattern="242[0-9]{9}" maxlength="12">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-1"></i>Mot de passe
+                            </label>
+                            <input type="password" class="form-control form-control-lg" id="password" 
+                                   name="password" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remember">
+                                <label class="form-check-label" for="remember">
+                                    Se souvenir de moi
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                        </button>
+
+                        <div class="text-center">
+                            <p class="text-muted mb-2">
+                                <a href="#" class="text-primary">Mot de passe oublié ?</a>
+                            </p>
+                            <p class="text-muted mb-0">
+                                Pas encore de compte ? 
+                                <a href="{{ url_for('register') }}" class="text-primary fw-bold">S'inscrire</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Access -->
+            <div class="text-center mt-4">
+                <p class="text-muted small">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Connexion sécurisée avec chiffrement SSL
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Preview for Visitors -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-4 mb-4">
+                <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
+                <h5>Achat et Vente</h5>
+                <p class="text-muted small">Trouvez des produits locaux ou vendez vos articles facilement</p>
+            </div>
+            <div class="col-md-4 mb-4">
+                <i class="fas fa-map-marker-alt fa-2x text-primary mb-3"></i>
+                <h5>Recherche Locale</h5>
+                <p class="text-muted small">Découvrez des offres près de chez vous grâce à la géolocalisation</p>
+            </div>
+            <div class="col-md-4 mb-4">
+                <i class="fas fa-crown fa-2x text-warning mb-3"></i>
+                <h5>Comptes Premium</h5>
+                <p class="text-muted small">Boostez la visibilité de vos annonces avec un compte Premium</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
