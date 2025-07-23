@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation avec {{ partner.full_name }} - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <a href="{{ url_for('chat_index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                        </div>
+                        <div class="col-auto">
+                            <img src="{{ url_for('static', filename='uploads/' + partner.profile_picture) if partner.profile_picture != 'default-avatar.svg' else url_for('static', filename='img/default-avatar.svg') }}" 
+                                 class="rounded-circle" width="50" height="50" alt="{{ partner.full_name }}">
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-1">
+                                {{ partner.full_name }}
+                                {% if partner.is_premium_active %}
+                                <i class="fas fa-crown text-warning ms-1" title="Premium"></i>
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ partner.location or 'Localisation non renseignée' }}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="blockUser()">
+                                        <i class="fas fa-ban me-2"></i>Bloquer
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="reportUser()">
+                                        <i class="fas fa-flag me-2"></i>Signaler
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="card shadow">
+                <div class="card-body p-0">
+                    <div id="chat-messages" class="chat-container custom-scrollbar p-3" 
+                         data-user-id="{{ partner.id }}" style="height: 400px; overflow-y: auto;">
+                        {% if messages %}
+                        {% for message in messages %}
+                        <div class="message {{ 'own' if message.sender_id == current_user.id else '' }} mb-3" 
+                             data-message-id="{{ message.id }}">
+                            <div class="message-content">
+                                {{ message.message|nl2br }}
+                            </div>
+                            <div class="message-time text-muted">
+                                {{ message.created_at.strftime('%H:%M') }}
+                                {% if message.sender_id != current_user.id %} - {{ message.sender.full_name }}{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-comments fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">Aucun message pour le moment. Commencez la conversation!</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Message Input -->
+                <div class="card-footer">
+                    <form id="send-message-form" class="d-flex gap-2">
+                        <div class="flex-grow-1">
+                            <textarea id="message-input" class="form-control" rows="1" 
+                                      placeholder="Tapez votre message..." required 
+                                      style="resize: none; min-height: 40px;"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    
+                    <!-- Quick Actions -->
+                    <div class="mt-2">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="insertQuickMessage('Bonjour, est-ce que l\'article est toujours disponible?')">
+                                <i class="fas fa-question me-1"></i>Disponibilité
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="insertQuickMessage('Quel est le prix final?')">
+                                <i class="fas fa-money-bill me-1"></i>Prix
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="insertQuickMessage('Pouvons-nous nous rencontrer?')">
+                                <i class="fas fa-handshake me-1"></i>Rendez-vous
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Safety Tips -->
+            <div class="card mt-3 border-warning">
+                <div class="card-body bg-warning bg-opacity-10">
+                    <h6 class="text-warning mb-2">
+                        <i class="fas fa-shield-alt me-2"></i>Conseils de sécurité
+                    </h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li><i class="fas fa-check text-success me-1"></i> Ne partagez jamais vos informations personnelles sensibles</li>
+                        <li><i class="fas fa-check text-success me-1"></i> Rencontrez-vous toujours dans un lieu public</li>
+                        <li><i class="fas fa-check text-success me-1"></i> Vérifiez l'article avant tout paiement</li>
+                        <li><i class="fas fa-check text-success me-1"></i> Signaler tout comportement suspect</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+function insertQuickMessage(message) {
+    const messageInput = document.getElementById('message-input');
+    messageInput.value = message;
+    messageInput.focus();
+}
+
+function blockUser() {
+    if (confirm('Êtes-vous sûr de vouloir bloquer cet utilisateur?')) {
+        // Implementation for blocking user
+        showNotification('Utilisateur bloqué', 'info');
+    }
+}
+
+function reportUser() {
+    if (confirm('Signaler cet utilisateur pour comportement inapproprié?')) {
+        // Implementation for reporting user
+        showNotification('Signalement envoyé à notre équipe', 'info');
+    }
+}
+
+// Auto-scroll to bottom on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.getElementById('chat-messages');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+});
+</script>
+{% endblock %}

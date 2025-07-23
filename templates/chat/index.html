@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - Congo Connect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0">
+                                <i class="fas fa-comments me-2"></i>Mes conversations
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="chat-search" 
+                                       placeholder="Rechercher une conversation...">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if chat_partners %}
+                    <div class="list-group list-group-flush">
+                        {% for partner_data in chat_partners %}
+                        <a href="{{ url_for('chat_conversation', user_id=partner_data.user.id) }}" 
+                           class="list-group-item list-group-item-action chat-list-item" 
+                           data-user-id="{{ partner_data.user.id }}">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="position-relative">
+                                        <img src="{{ url_for('static', filename='uploads/' + partner_data.user.profile_picture) if partner_data.user.profile_picture != 'default-avatar.svg' else url_for('static', filename='img/default-avatar.svg') }}" 
+                                             class="rounded-circle" width="50" height="50" alt="{{ partner_data.user.full_name }}">
+                                        <div class="online-indicator position-absolute bottom-0 end-0 bg-success rounded-circle" 
+                                             style="width: 12px; height: 12px; border: 2px solid white;"></div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1 chat-user-name">
+                                                {{ partner_data.user.full_name }}
+                                                {% if partner_data.user.is_premium_active %}
+                                                <i class="fas fa-crown text-warning ms-1" title="Premium"></i>
+                                                {% endif %}
+                                            </h6>
+                                            {% if partner_data.last_message %}
+                                            <p class="mb-0 text-muted small chat-last-message">
+                                                {% if partner_data.last_message.sender_id == current_user.id %}
+                                                <strong>Vous:</strong>
+                                                {% endif %}
+                                                {{ partner_data.last_message.message[:50] }}{% if partner_data.last_message.message|length > 50 %}...{% endif %}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted">{{ partner_data.last_message_time.strftime('%d/%m %H:%M') if partner_data.last_message_time }}</small>
+                                            {% if partner_data.unread_count > 0 %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-danger rounded-pill">{{ partner_data.unread_count }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucune conversation</h5>
+                        <p class="text-muted">Commencez une conversation en contactant un vendeur depuis une annonce</p>
+                        <a href="{{ url_for('search') }}" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Parcourir les annonces
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Card -->
+    <div class="row mt-4">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-info">
+                <div class="card-body bg-info bg-opacity-10">
+                    <h6 class="text-info mb-3">
+                        <i class="fas fa-lightbulb me-2"></i>Conseils pour une bonne communication
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled small mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Soyez poli et respectueux</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Posez des questions précises</li>
+                                <li class="mb-0"><i class="fas fa-check text-success me-2"></i>Répondez rapidement aux messages</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled small mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Négociez de façon constructive</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Organisez un rendez-vous en lieu sûr</li>
+                                <li class="mb-0"><i class="fas fa-check text-success me-2"></i>Confirmez les détails avant la rencontre</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}
