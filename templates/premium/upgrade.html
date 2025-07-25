@@ -88,6 +88,16 @@
                                 <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Activation immédiate</li>
                                 <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Support client</li>
                             </ul>
+                            <!-- Lygos Payment Button -->
+                            <div class="mt-3">
+                                <form method="POST" action="{{ url_for('pay_with_lygos') }}" style="display: inline;">
+                                    <input type="hidden" name="amount" value="5000">
+                                    <input type="hidden" name="months" value="1">
+                                    <button type="submit" class="btn btn-outline-primary w-100">
+                                        <i class="fas fa-credit-card me-2"></i>Payer avec Lygos
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -103,6 +113,16 @@
                                 <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Activation immédiate</li>
                                 <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Support prioritaire</li>
                             </ul>
+                            <!-- Lygos Payment Button -->
+                            <div class="mt-3">
+                                <form method="POST" action="{{ url_for('pay_with_lygos') }}" style="display: inline;">
+                                    <input type="hidden" name="amount" value="12000">
+                                    <input type="hidden" name="months" value="3">
+                                    <button type="submit" class="btn btn-outline-warning w-100">
+                                        <i class="fas fa-credit-card me-2"></i>Payer avec Lygos
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -117,6 +137,16 @@
                                 <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Activation immédiate</li>
                                 <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Support VIP</li>
                             </ul>
+                            <!-- Lygos Payment Button -->
+                            <div class="mt-3">
+                                <form method="POST" action="{{ url_for('pay_with_lygos') }}" style="display: inline;">
+                                    <input type="hidden" name="amount" value="20000">
+                                    <input type="hidden" name="months" value="6">
+                                    <button type="submit" class="btn btn-outline-success w-100">
+                                        <i class="fas fa-credit-card me-2"></i>Payer avec Lygos
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -285,5 +315,27 @@ document.querySelectorAll('.card').forEach(card => {
         });
     }
 });
+
+// Lygos payment integration
+function payWithLygos(amount, months) {
+    // Placeholder for Lygos API integration
+    alert(`Redirection vers Lygos pour le paiement de ${amount} FCFA (${months} mois).\n\nPour intégrer Lygos :\n1. Créez un compte sur lygos.co\n2. Obtenez vos clés API\n3. Configurez le webhook\n4. Remplacez cette fonction par l'appel API Lygos`);
+    
+    // Example Lygos integration (to be implemented with real API):
+    /*
+    const lygosConfig = {
+        apiKey: 'YOUR_LYGOS_API_KEY',
+        amount: amount,
+        currency: 'XAF',
+        customerPhone: '{{ current_user.phone_number if current_user.is_authenticated }}',
+        description: `Congo Connect Premium - ${months} mois`,
+        webhookUrl: '{{ url_for("lygos_webhook", _external=True) }}',
+        returnUrl: '{{ url_for("dashboard", _external=True) }}'
+    };
+    
+    // Call Lygos payment API
+    LygosPayment.init(lygosConfig);
+    */
+}
 </script>
 {% endblock %}
