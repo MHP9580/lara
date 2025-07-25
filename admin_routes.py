@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app import app, db
 from models import Admin, User, Listing, Category, PremiumRequest, ChatMessage
 from utils import save_image
@@ -12,12 +12,17 @@ def admin_login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        admin = Admin.query.filter_by(username=username, is_active=True).first()
+        if not username or not password:
+            flash('Veuillez remplir tous les champs.', 'error')
+            return render_template('admin/login.html')
         
-        if admin and check_password_hash(admin.password_hash, password):
+        admin = Admin.query.filter_by(username=username, active=True).first()
+        
+        if admin and admin.password_hash and check_password_hash(admin.password_hash, password):
             session['admin_id'] = admin.id
             admin.last_login = datetime.utcnow()
             db.session.commit()
+            flash('Connexion réussie !', 'success')
             return redirect(url_for('admin_dashboard'))
         else:
             flash('Nom d\'utilisateur ou mot de passe incorrect.', 'error')
@@ -40,7 +45,7 @@ def admin_required(f):
             return redirect(url_for('admin_login'))
         
         admin = Admin.query.get(session['admin_id'])
-        if not admin or not admin.is_active:
+        if not admin or not admin.active:
             session.pop('admin_id', None)
             return redirect(url_for('admin_login'))
         
@@ -58,7 +63,7 @@ def super_admin_required(f):
             return redirect(url_for('admin_login'))
         
         admin = Admin.query.get(session['admin_id'])
-        if not admin or not admin.is_active or not admin.is_super_admin:
+        if not admin or not admin.active or not admin.is_super_admin:
             flash('Accès refusé. Privilèges de super administrateur requis.', 'error')
             return redirect(url_for('admin_dashboard'))
         
@@ -73,10 +78,10 @@ def admin_dashboard():
     
     # Get statistics
     stats = {
-        'total_users': User.query.filter_by(is_active=True).count(),
-        'premium_users': User.query.filter_by(is_premium=True, is_active=True).count(),
-        'total_listings': Listing.query.filter_by(is_active=True).count(),
-        'sold_listings': Listing.query.filter_by(is_sold=True, is_active=True).count(),
+        'total_users': User.query.filter_by(active=True).count(),
+        'premium_users': User.query.filter_by(is_premium=True, active=True).count(),
+        'total_listings': Listing.query.filter_by(active=True).count(),
+        'sold_listings': Listing.query.filter_by(is_sold=True, active=True).count(),
         'pending_premium_requests': PremiumRequest.query.filter_by(status='pending').count(),
         'total_messages': ChatMessage.query.count(),
         'unread_messages': ChatMessage.query.filter_by(is_read=False).count(),
@@ -105,7 +110,7 @@ def admin_users():
     
     if search:
         query = query.filter(
-            db.or_(
+            or_(
                 User.first_name.contains(search),
                 User.last_name.contains(search),
                 User.phone_number.contains(search)
@@ -117,9 +122,9 @@ def admin_users():
     elif filter_type == 'regular':
         query = query.filter_by(is_premium=False)
     elif filter_type == 'inactive':
-        query = query.filter_by(is_active=False)
+        query = query.filter_by(active=False)
     else:
-        query = query.filter_by(is_active=True)
+        query = query.filter_by(active=True)
     
     users = query.order_by(User.created_at.desc()).paginate(
         page=page, per_page=20, error_out=False
@@ -131,18 +136,16 @@ def admin_users():
 @admin_required
 def toggle_user_premium(id):
     user = User.query.get_or_404(id)
-    duration = request.form.get('duration', type=int, default=30)
-    
-    admin = Admin.query.get(session['admin_id'])
+    duration = request.form.get('duration', type=int) or 30
     
     if user.is_premium:
         user.is_premium = False
         user.premium_end_date = None
-        message = f'Statut Premium retiré de {user.full_name}'
+        message = f'Statut Premium retiré de {user.first_name} {user.last_name}'
     else:
         user.is_premium = True
         user.premium_end_date = datetime.utcnow() + timedelta(days=duration)
-        message = f'Statut Premium activé pour {user.full_name} ({duration} jours)'
+        message = f'Statut Premium activé pour {user.first_name} {user.last_name} ({duration} jours)'
     
     db.session.commit()
     flash(message, 'success')
@@ -153,11 +156,11 @@ def toggle_user_premium(id):
 def toggle_user_active(id):
     user = User.query.get_or_404(id)
     
-    user.is_active = not user.is_active
-    status = 'activé' if user.is_active else 'désactivé'
+    user.active = not user.active
+    status = 'activé' if user.active else 'désactivé'
     
     db.session.commit()
-    flash(f'Utilisateur {user.full_name} {status}.', 'success')
+    flash(f'Utilisateur {user.first_name} {user.last_name} {status}.', 'success')
     return redirect(url_for('admin_users'))
 
 @app.route('/admin/listings')
@@ -172,7 +175,7 @@ def admin_listings():
     
     if search:
         query = query.filter(
-            db.or_(
+            or_(
                 Listing.title.contains(search),
                 Listing.description.contains(search)
             )
@@ -184,9 +187,9 @@ def admin_listings():
     if filter_type == 'sold':
         query = query.filter_by(is_sold=True)
     elif filter_type == 'inactive':
-        query = query.filter_by(is_active=False)
+        query = query.filter_by(active=False)
     else:
-        query = query.filter_by(is_active=True, is_sold=False)
+        query = query.filter_by(active=True, is_sold=False)
     
     listings = query.order_by(Listing.created_at.desc()).paginate(
         page=page, per_page=20, error_out=False
@@ -206,8 +209,8 @@ def admin_listings():
 def toggle_listing_active(id):
     listing = Listing.query.get_or_404(id)
     
-    listing.is_active = not listing.is_active
-    status = 'activée' if listing.is_active else 'désactivée'
+    listing.active = not listing.active
+    status = 'activée' if listing.active else 'désactivée'
     
     db.session.commit()
     flash(f'Annonce "{listing.title}" {status}.', 'success')

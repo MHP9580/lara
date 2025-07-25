@@ -11,6 +11,12 @@ from utils import validate_congolese_phone, save_image, calculate_distance, form
 app.jinja_env.filters['format_price'] = format_price
 app.jinja_env.filters['time_ago'] = time_ago
 
+def nl2br(value):
+    """Convert newlines to HTML line breaks"""
+    return value.replace('\n', '<br>\n') if value else ''
+
+app.jinja_env.filters['nl2br'] = nl2br
+
 @app.route('/')
 def index():
     # Get search parameters
@@ -21,7 +27,7 @@ def index():
     user_lon = request.args.get('lon', type=float)
     
     # Base query for active listings
-    query = Listing.query.filter_by(is_active=True, is_sold=False)
+    query = Listing.query.filter_by(active=True, is_sold=False)
     
     # Apply filters
     if search:
@@ -123,12 +129,22 @@ def login():
     if request.method == 'POST':
         phone_number = request.form.get('phone_number')
         password = request.form.get('password')
+        remember = request.form.get('remember_me') == 'on'
         
-        user = User.query.filter_by(phone_number=phone_number, is_active=True).first()
+        if not phone_number or not password:
+            flash('Veuillez remplir tous les champs.', 'error')
+            return render_template('auth/login.html')
         
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
+        if not validate_congolese_phone(phone_number):
+            flash('Numéro de téléphone invalide. Format requis: 242XXXXXXXXX', 'error')
+            return render_template('auth/login.html')
+        
+        user = User.query.filter_by(phone_number=phone_number, active=True).first()
+        
+        if user and user.password_hash and check_password_hash(user.password_hash, password):
+            login_user(user, remember=remember)
             next_page = request.args.get('next')
+            flash('Connexion réussie !', 'success')
             return redirect(next_page) if next_page else redirect(url_for('dashboard'))
         else:
             flash('Numéro de téléphone ou mot de passe incorrect.', 'error')
@@ -209,25 +225,30 @@ def create_listing():
             user_id=current_user.id
         )
         
-        db.session.add(listing)
-        db.session.flush()  # Get the listing ID
-        
-        # Handle image uploads
-        uploaded_files = request.files.getlist('images')
-        for i, file in enumerate(uploaded_files):
-            if file and file.filename:
-                saved_path = save_image(file, 'listings')
-                if saved_path:
-                    image = ListingImage(
-                        listing_id=listing.id,
-                        image_path=saved_path,
-                        is_primary=(i == 0)
-                    )
-                    db.session.add(image)
-        
-        db.session.commit()
-        flash('Annonce créée avec succès!', 'success')
-        return redirect(url_for('listing_detail', id=listing.id))
+        try:
+            db.session.add(listing)
+            db.session.flush()  # Get the listing ID
+            
+            # Handle image uploads
+            uploaded_files = request.files.getlist('images')
+            for i, file in enumerate(uploaded_files):
+                if file and file.filename:
+                    saved_path = save_image(file, 'listings')
+                    if saved_path:
+                        image = ListingImage(
+                            listing_id=listing.id,
+                            image_path=saved_path,
+                            is_primary=(i == 0)
+                        )
+                        db.session.add(image)
+            
+            db.session.commit()
+            flash('Annonce créée avec succès!', 'success')
+            return redirect(url_for('listing_detail', id=listing.id))
+        except Exception as e:
+            db.session.rollback()
+            flash('Une erreur est survenue lors de la création de l\'annonce. Veuillez réessayer.', 'error')
+            print(f"Listing creation error: {e}")  # For debugging
     
     categories = Category.query.all()
     return render_template('listings/create.html', categories=categories)
@@ -245,7 +266,7 @@ def listing_detail(id):
         and_(
             Listing.category_id == listing.category_id,
             Listing.id != listing.id,
-            Listing.is_active == True,
+            Listing.active == True,
             Listing.is_sold == False
         )
     ).limit(4).all()
@@ -328,7 +349,7 @@ def search():
     sort_by = request.args.get('sort', 'relevance')
     
     # Base query
-    query = Listing.query.filter_by(is_active=True, is_sold=False)
+    query = Listing.query.filter_by(active=True, is_sold=False)
     
     # Apply filters
     if search:
@@ -428,3 +449,145 @@ def create_default_categories():
             db.session.add(category)
         
         db.session.commit()
+
+# Legal routes
+@app.route('/privacy-policy')
+def privacy_policy():
+    return render_template('legal/privacy_policy.html')
+
+@app.route('/terms-of-service')
+def terms_of_service():
+    return render_template('legal/terms_of_service.html')
+
+# Lygos Payment Integration Routes
+@app.route('/premium/pay-lygos', methods=['POST'])
+@login_required
+def pay_with_lygos():
+    """Process Lygos payment for premium subscription"""
+    amount = request.form.get('amount', type=int)
+    months = request.form.get('months', type=int)
+    
+    if not amount or not months:
+        flash('Paramètres de paiement invalides.', 'error')
+        return redirect(url_for('premium_upgrade'))
+    
+    # Create Lygos payment product
+    import requests
+    
+    lygos_api_key = os.environ.get('LYGOS_API_KEY')
+    if not lygos_api_key:
+        flash('Service de paiement temporairement indisponible. Veuillez utiliser le paiement manuel.', 'error')
+        return redirect(url_for('premium_upgrade'))
+    
+    # Lygos API payload
+    payload = {
+        'title': f'Congo Connect Premium - {months} mois',
+        'amount': amount,
+        'description': f'Abonnement Premium Congo Connect pour {months} mois - {current_user.full_name}',
+        'success-url': url_for('lygos_success', _external=True),
+        'failure-url': url_for('lygos_failure', _external=True),
+        'user_id': str(current_user.id),
+        'months': str(months)
+    }
+    
+    headers = {
+        'api-key': lygos_api_key,
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        response = requests.post('https://api.lygosapp.com/v1/products', 
+                               json=payload, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            lygos_data = response.json()
+            # Redirect to Lygos payment page
+            return redirect(lygos_data['payment_url'])
+        else:
+            flash('Erreur lors de la création du paiement. Veuillez réessayer.', 'error')
+            return redirect(url_for('premium_upgrade'))
+            
+    except requests.RequestException:
+        flash('Service de paiement temporairement indisponible. Veuillez utiliser le paiement manuel.', 'error')
+        return redirect(url_for('premium_upgrade'))
+
+@app.route('/premium/lygos/success')
+@login_required 
+def lygos_success():
+    """Handle successful Lygos payment"""
+    # Get payment details from URL parameters
+    payment_id = request.args.get('payment_id')
+    months = request.args.get('months', type=int, default=1)
+    
+    if payment_id:
+        # Activate premium status
+        current_user.is_premium = True
+        current_user.premium_end_date = datetime.utcnow() + timedelta(days=months * 30)
+        
+        # Create premium request record for admin tracking
+        premium_request = PremiumRequest(
+            user_id=current_user.id,
+            payment_phone=current_user.phone_number,
+            amount=months * 5000 if months == 1 else (months * 4000 if months == 3 else months * 3333),
+            payment_date=datetime.utcnow(),
+            status='approved',
+            payment_method='lygos',
+            payment_reference=payment_id
+        )
+        
+        db.session.add(premium_request)
+        db.session.commit()
+        
+        flash(f'Paiement réussi ! Votre compte Premium est maintenant actif pour {months} mois.', 'success')
+    else:
+        flash('Erreur de vérification du paiement. Contactez le support si votre compte n\'est pas activé.', 'warning')
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/premium/lygos/failure')
+@login_required
+def lygos_failure():
+    """Handle failed Lygos payment"""
+    flash('Le paiement a été annulé ou a échoué. Vous pouvez réessayer ou utiliser le paiement manuel.', 'error')
+    return redirect(url_for('premium_upgrade'))
+
+@app.route('/api/lygos/webhook', methods=['POST'])
+def lygos_webhook():
+    """Handle Lygos webhook notifications"""
+    # Verify webhook authenticity (implement signature verification in production)
+    webhook_data = request.get_json()
+    
+    if webhook_data and webhook_data.get('status') == 'completed':
+        user_id = webhook_data.get('user_id')
+        months = int(webhook_data.get('months', 1))
+        payment_id = webhook_data.get('payment_id')
+        
+        if user_id:
+            user = User.query.get(user_id)
+            if user:
+                # Activate premium status
+                user.is_premium = True
+                user.premium_end_date = datetime.utcnow() + timedelta(days=months * 30)
+                
+                # Update or create premium request
+                premium_request = PremiumRequest.query.filter_by(
+                    payment_reference=payment_id
+                ).first()
+                
+                if premium_request:
+                    premium_request.status = 'approved'
+                else:
+                    premium_request = PremiumRequest(
+                        user_id=user.id,
+                        payment_phone=user.phone_number,
+                        amount=webhook_data.get('amount', 5000),
+                        payment_date=datetime.utcnow(),
+                        status='approved',
+                        payment_method='lygos',
+                        payment_reference=payment_id
+                    )
+                    db.session.add(premium_request)
+                
+                db.session.commit()
+    
+    return jsonify({'status': 'success'}), 200

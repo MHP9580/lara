@@ -18,7 +18,7 @@ class User(UserMixin, db.Model):
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_active = db.Column(db.Boolean, default=True)
+    active = db.Column(db.Boolean, default=True)
     
     # Relationships
     listings = db.relationship('Listing', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -67,7 +67,7 @@ class Listing(db.Model):
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     is_sold = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True)
+    active = db.Column(db.Boolean, default=True)
     view_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -143,7 +143,7 @@ class Admin(UserMixin, db.Model):
     profile_picture = db.Column(db.String(200), default='default-admin.svg')
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default='moderator')  # moderator, super_admin
-    is_active = db.Column(db.Boolean, default=True)
+    active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     

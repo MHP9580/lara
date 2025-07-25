@@ -1,7 +1,7 @@
-modules = ["python-3.11"]
+modules = ["web", "python-3.11", "nodejs-20"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "postgresql", "tcl", "tk", "zlib"]
 
 [deployment]
@@ -32,3 +32,6 @@ waitForPort = 5000
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[agent]
+integrations = ["flask_stripe==1.0.0", "python_database==1.0.0"]
