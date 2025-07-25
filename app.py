@@ -32,7 +32,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Initialize extensions
 db.init_app(app)
 login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
+login_manager.login_view = 'login'
 login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
 
 @login_manager.user_loader
@@ -42,6 +42,12 @@ def load_user(user_id):
 
 # Create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Inject categories globally in all templates
+@app.context_processor
+def inject_categories():
+    from models import Category
+    return dict(categories=Category.query.all())
 
 with app.app_context():
     # Import models and routes
@@ -59,15 +65,14 @@ with app.app_context():
     
     super_admin = Admin.query.filter_by(username='superadmin').first()
     if not super_admin:
-        super_admin = Admin(
-            username='superadmin',
-            email='admin@congoconnect.com',
-            phone_number='242000000000',
-            first_name='Super',
-            last_name='Admin',
-            password_hash=generate_password_hash('admin123'),
-            role='super_admin'
-        )
+        super_admin = Admin()
+        super_admin.username = 'superadmin'
+        super_admin.email = 'admin@congoconnect.com'
+        super_admin.phone_number = '242000000000'
+        super_admin.first_name = 'Super'
+        super_admin.last_name = 'Admin'
+        super_admin.password_hash = generate_password_hash('admin123')
+        super_admin.role = 'super_admin'
         db.session.add(super_admin)
         db.session.commit()
         logging.info("Default super admin created: username=superadmin, password=admin123")
